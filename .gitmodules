@@ -1,0 +1,6 @@
+[submodule "pyxelate"]
+	path = pyxelate
+	url = https://github.com/sedthh/pyxelate
+[submodule "pypxl"]
+	path = pypxl
+	url = https://github.com/andreasimonetto/pypxl
