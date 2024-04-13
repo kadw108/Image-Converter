@@ -141,17 +141,16 @@ def glitch(i, output_num, input_num):
 if __name__ == "__main__":
     # name = gen_colormaps()
     for i in [x for x in sorted(os.listdir(input_path)) if x.endswith(".png")]:
-        if "tunnel" in i:
-            print(i)
-            i = os.path.join(input_path, i)
-            # rename(i, 1, 0)
-            pypxl(i, 1, 0)
-            resize(i, 2, 1, max_height = 350)
-            # dither(i, 2, 1)
-            apply_colormap(i, 3, 2, "colormap_glass.png", 190)
-            resize(i, 4, 3, min_height = 850)
-            glitch(i, 5, 4)
-            pass
+        print(i)
+        i = os.path.join(input_path, i)
+        # rename(i, 1, 0)
+        # pypxl(i, 1, 0)
+        # resize(i, 2, 1, max_height = 350)
+        # dither(i, 2, 1) # don't use?
+        # apply_colormap(i, 3, 2, "colormap_greenhouse.png", 190)
+        # resize(i, 4, 3, min_height = 850)
+        glitch(i, 5, 4)
+        pass
 
     # i = "1dorm.png"
     # pypxl(i, 1, 0)
