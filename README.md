@@ -1,10 +1,8 @@
-Run converter.py.
+Run converter.py. All relevant information is there.
 
-It's structured as several functions that take in input numbers and output numbers.
+You may need to install some things. gifsicle and imageMagick (convert) are required to work on the command line for the gif functions.
 
-The selected inputs for each function are, by default, all .png files in the folder that start with the input number.
-
-The outputs will start with the output number.
+Not heavily tested. Works on Linux. Repo made mainly for myself. You should probably know Python if you're using this.
 
 Resources:
 - https://github.com/delivrance/glitchart

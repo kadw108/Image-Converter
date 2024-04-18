@@ -119,7 +119,7 @@ def glitch(filename, output_name):
                    duration=DURATION,
                    loop=LOOP)
 
-def downsize_gif(filename, output_name, percent):
+def gif_downsize(filename, output_name, percent):
     """
     Reduces actual size of input gif, which also reduces file size.
     Requires convert to work on command line.
@@ -130,7 +130,7 @@ def downsize_gif(filename, output_name, percent):
     command = "convert -resize " + str(percent) + "% " + filename + " " + output_name
     os.system(command)
 
-def optimize_gif(filename, output_name, lossy = 30, color_num = None):
+def gif_optimize(filename, output_name, lossy = 30, color_num = None):
     """
     Optimize input gif to reduce file size. 
     Requires gifsicle to work on command line.
@@ -146,7 +146,7 @@ def optimize_gif(filename, output_name, lossy = 30, color_num = None):
     command = "gifsicle -O3 " + color_num_arg + " --lossy=" + str(lossy) + " -o " + output_name + " " + filename
     os.system(command)
 
-def change_gif_speed(filename, output_name, fps = 12):
+def gif_change_speed(filename, output_name, fps = 12):
     """
     Change speed of input gif to fps.
     Requires convert to work on command line.
@@ -156,11 +156,12 @@ def change_gif_speed(filename, output_name, fps = 12):
     command = "convert -delay " + argument + " " + os.path.join(input_path, filename) + " " + os.path.join(input_path, output_name)
     os.system(command)
 
-def reduce_gif_frames(filename, output_name, skip_frames=2):
+def gif_reduce_frames(filename, output_name, skip_frames=2):
     """
     Removes all frames except every [skip_frames] frame.
+    Requires gifsicle to work on command line.
 
-    i.e. skip_frames=2 keeps frames 0, 2, 4... skip_frames=4 keeps frames 0, 4, 8...
+    skip_frames -- skip_frames=2 keeps frames 0, 2, 4... skip_frames=4 keeps frames 0, 4, 8... and so on.
     """
 
     im = Image.open(filename)
@@ -171,13 +172,13 @@ def reduce_gif_frames(filename, output_name, skip_frames=2):
 
 """ UTILITY FUNCTIONS """
 
-def rename(filename, output_name):
+def copy(filename, output_name):
     """
     Opens filename as image and saves it under output_name.
     Does not delete original file.
     """
-    inp = Image.open(filename)
-    inp.save(output_name)
+
+    os.system("cp " + filename + " " + output_name)
 
 def get_output_filename(filename, output_num):
     """
@@ -230,7 +231,7 @@ def callback_all(callback, input_num, output_num, *args, **kwargs):
     Meant to be used as a wrapper around the other image manipulation functions.
     Since it lets you operate on image files in bulk.
     """
-    print("--- Callback:", callback.__name__, "| Input num:", input_num, "| Output num:", output_num, "---\n")
+    print("\n--- Callback:", callback.__name__, "| Input num:", input_num, "| Output num:", output_num, "---")
     gather_files = [x for x in sorted(os.listdir(input_path)) if (x.endswith(".png") or x.endswith(".gif"))]
     for filename in gather_files:
         full_filename = os.path.join(input_path, filename)
@@ -249,9 +250,11 @@ if __name__ == "__main__":
     callback_all(resize, 1, 2, max_height = 350)
     callback_all(apply_colormap, 2, 3, colormap_name = "colormap_greenhouse.png", gradient_alpha = 150)
     callback_all(glitch, 3, 4)
-    callback_all(change_gif_speed, 4, 5, fps = 6)
-    callback_all(reduce_gif_frames, 5, 6)
-    callback_all(optimize_gif, 6, 7, lossy=200, color_num = 16)
+    callback_all(gif_change_speed, 4, 5, fps = 6)
+    callback_all(gif_downsize, 5, 6, percent = 80)
+    callback_all(gif_reduce_frames, 6, 7)
+    callback_all(gif_change_speed, 7, 8, fps = 6)
+    callback_all(gif_optimize, 8, 9, lossy=200, color_num = 32)
 
     """
     # Example of using the image functions on 1 image.
