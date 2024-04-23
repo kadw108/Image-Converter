@@ -88,15 +88,26 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
     colormap_name -- path to colormap, 1d horizontal pixel strip with lighter colors to the right
     gradient_alpha -- strength of colormap; number from [0, 255] with higher = stronger colormap
     """
-    command = "convert " + filename + \
-        " -channel RGB -separate -evaluate-sequence mean " +  \
-        colormap_name + \
-        " -clut " +  \
-        "temp.png"
-    os.system(command)
 
-    base_img = Image.open(filename)
-    overlay_img = Image.open("temp.png").convert("RGBA")
+    # from https://stackoverflow.com/a/71584672
+    im = Image.open(filename).convert('RGB')
+    na = np.array(im)
+    grey = np.mean(na, axis=2).astype(np.uint8)
+
+    # Load colourmap
+    cmap = Image.open(colormap_name).convert('RGB')
+
+    # Make output image, same height and width as grey image, but 3-channel RGB
+    result = np.zeros((*grey.shape,3), dtype=np.uint8)
+
+    # Take entries from RGB colourmap according to greyscale values in image
+    np.take(cmap.getdata(), grey, axis=0, out=result)
+
+    # overlay_img has map applied in full
+    overlay_img = Image.fromarray(result).convert("RGB")
+    overlay_img.save(output_name)
+
+    base_img = Image.open(filename).convert("RGB")
     overlay_img.putalpha(gradient_alpha)
     base_img.paste(overlay_img, mask=overlay_img)
     base_img.save(output_name)
@@ -113,16 +124,16 @@ def glitch(filename, output_name):
     LOOP = 0            # Set this to how many times the gif should loop
                         # LOOP = 0 means infinite loop
     glitch_img[0].save(output_name + ".gif",
-                   format='GIF',
-                   append_images=glitch_img[1:],
-                   save_all=True,
-                   duration=DURATION,
-                   loop=LOOP)
+                       format='GIF',
+                       append_images=glitch_img[1:],
+                       save_all=True,
+                       duration=DURATION,
+                       loop=LOOP)
 
 def gif_downsize(filename, output_name, percent):
     """
     Reduces actual size of input gif, which also reduces file size.
-    Requires convert to work on command line.
+    Requires ImageMagick to work on command line as convert.
 
     percent -- [0-100], percentage of original size to keep.
     """
@@ -132,13 +143,13 @@ def gif_downsize(filename, output_name, percent):
 
 def gif_optimize(filename, output_name, lossy = 30, color_num = None):
     """
-    Optimize input gif to reduce file size. 
+    Optimize input gif to reduce file size.
     Requires gifsicle to work on command line.
 
     color_num -- colorspace/number of colors in resulting gif, suggested values from 16 to 256. Optional. Number of colors will not be reduced if not included.
     lossy -- level of compression, suggested values from 30 to 200, with higher = more compression.
     """
-   
+
     color_num_arg = ""
     if isinstance(color_num, int):
         color_num_arg = "--colors " + str(color_num)
@@ -149,7 +160,7 @@ def gif_optimize(filename, output_name, lossy = 30, color_num = None):
 def gif_change_speed(filename, output_name, fps = 12):
     """
     Change speed of input gif to fps.
-    Requires convert to work on command line.
+    Requires ImageMagick to work on command line as convert.
     """
     argument = str(int(100/fps)) # Default fps of 12 makes this 8
 
@@ -246,15 +257,14 @@ if __name__ == "__main__":
     # You can comment in/out specific parts of the pipeline if you want to swap out certain operations for other ones, or if you like the product of a certain step but not what happens after that.
     # Furthermore, since different input/output numbers are used for each step, you can check the results of each operation.
 
-    callback_all(pypxl, 0, 1)
-    callback_all(resize, 1, 2, max_height = 350)
+    callback_all(resize, 0, 2, max_height = 450)
     callback_all(apply_colormap, 2, 3, colormap_name = "colormap_greenhouse.png", gradient_alpha = 150)
     callback_all(glitch, 3, 4)
     callback_all(gif_change_speed, 4, 5, fps = 6)
     callback_all(gif_downsize, 5, 6, percent = 80)
-    callback_all(gif_reduce_frames, 6, 7)
+    callback_all(gif_reduce_frames, 5, 7)
     callback_all(gif_change_speed, 7, 8, fps = 6)
-    callback_all(gif_optimize, 8, 9, lossy=200, color_num = 32)
+    callback_all(gif_optimize, 8, 9, lossy=200, color_num = 64)
 
     """
     # Example of using the image functions on 1 image.
