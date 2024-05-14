@@ -1,3 +1,4 @@
+aspose-imaging-python-net==24.5.0
 dithering==0.1.27
 glitch-this==1.0.2
 GlitchArt==1.0.0
