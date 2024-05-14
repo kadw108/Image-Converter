@@ -25,7 +25,6 @@ def main(args):
     quant = float(args.palette)    # Color come from palette(limited colours)
 
     img_path = args.path.rsplit(".", -1)
-    img_name = ".".join(img_path[:len(img_path) - 1])
     img_extension = img_path[len(img_path) - 1]
 
     if img_extension == "gif":
@@ -36,10 +35,10 @@ def main(args):
     shutil.copy(args.path, temp_input_path)
 
     if img_extension == 'gif': # convert gif into jpgs
-        shutil.rmtree(img_name, ignore_errors = True) # in case this has been done with a previous gif before
-        os.makedirs(img_name)
-        subprocess.call(('convert -verbose -coalesce %s %s/no.jpg' % (args.path, img_name)).split(), stdout = subprocess.DEVNULL)
-        all_img_path = [(img_name+'/no-'+str(i)+'.jpg') for i in range(len(os.listdir(img_name)))]
+        shutil.rmtree("temp", ignore_errors = True) # in case this has been done with a previous gif before
+        os.makedirs("temp")
+        subprocess.call(('convert -verbose -coalesce %s %s/no.jpg' % (args.path, "temp")).split(), stdout = subprocess.DEVNULL)
+        all_img_path = [("temp"+'/no-'+str(i)+'.jpg') for i in range(len(os.listdir("temp")))]
     else:
         all_img_path = [args.path]
 
@@ -83,13 +82,13 @@ def main(args):
     if img_extension == 'gif':
         c, images = 0, []
         for canva in result:
-            cv2.imwrite(img_name+'/r-'+str(c)+'.jpg', canva); c += 1
+            cv2.imwrite("temp"+'/r-'+str(c)+'.jpg', canva); c += 1
         for i in range(c-1):
-            images.append(imageio.imread(img_name+'/r-'+str(i)+'.jpg'))
+            images.append(imageio.imread("temp"+'/r-'+str(i)+'.jpg'))
 
         from PIL import Image
         imageio.mimsave(output_path, images, duration=float(Image.open(args.path).info['duration']) / 1000, loop = 0)
-        shutil.rmtree(img_name, ignore_errors=True)
+        shutil.rmtree("temp", ignore_errors=True)
     else:
         cv2.imwrite(output_path, result[0])
 

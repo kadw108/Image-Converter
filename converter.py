@@ -16,6 +16,8 @@ glitcher = ImageGlitcher()
 
 import re
 
+import shutil
+
 current_path = os.path.abspath(os.getcwd())
 input_path = current_path
 
@@ -151,9 +153,24 @@ def pillow_adjust_image(filename, output_name, new_saturation = 1.0, new_contras
     inp = ImageEnhance.Sharpness(inp).enhance(new_sharpness)
     inp.save(output_name)
 
-def convert_gif(filename, output_name):
-    command = "convert -loop 0 " + filename + " " + output_name + ".gif"
-    os.system(command)
+def convert_gif(filename, output_name, number_frames = 8, framerate = 8): 
+    """ 
+    Turns input png into output gif.
+    The gif will appear identical to the input png (it will not be animated).
+
+    Mainly useful for the painting function, which only converts pngs to pngs and gifs to gifs.
+
+    number_frames = number of frames in resulting gif.
+    framerate = framerate of resulting gif.
+    """
+
+    shutil.rmtree("temp", ignore_errors = True) 
+    os.makedirs("temp")
+    for i in range(number_frames):
+        shutil.copyfile(filename, os.path.join("temp", str(i) + ".png"))
+
+    command = "ffmpeg -y -framerate " + str(framerate) + " -i temp/%d.png " + output_name + ".gif"
+    subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell = True)
 
 def glitch(filename, output_name, glitch_amount = 0.7):
     """
@@ -332,13 +349,16 @@ if __name__ == "__main__":
     # Furthermore, since different input/output numbers are used for each step, you can check the results of each operation.
 
     callback_all(resize, 0, 1, max_height = 300)
-    callback_all(pillow_adjust_image, 1, 2, new_contrast = 1.0, new_brightness = 1.1, new_saturation = 0)
+    callback_all(pillow_adjust_image, 1, 2, new_contrast = 1.0, new_brightness = 1.1, new_saturation = 1.5)
     callback_all(apply_colormap, 2, 3, colormap_name = "colormap_greenhouse.png", gradient_alpha = 150)
     callback_all(glitch, 3, 6, glitch_amount = 2)
     callback_all(gif_reduce_frames, 6, 7, skip_frames = 6)
     callback_all(gif_change_speed, 7, 8, fps = 2)
     callback_all(gif_optimize, 8, 9, lossy=200, color_num = 16)
-    callback_all(painting, 1, 999) 
+
+    callback_all(convert_gif, 2, 998, number_frames = 6, framerate = 3)
+    callback_all(painting, 998, 999) 
+    callback_all(gif_optimize, 999, 1000, lossy=200, color_num = 16)
 
     """
     # Example of using the image functions on 1 image.
