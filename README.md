@@ -6,6 +6,19 @@ With this, you can turn boring images into interesting-looking gifs very quickly
 
 ---
 
+### Example of Use
+
+Source image:
+
+![source](https://raw.githubusercontent.com/kadw108/Image-Converter/main/0example_door.png)
+
+Possible output images:
+
+![final1](https://raw.githubusercontent.com/kadw108/Image-Converter/main/final_example1.gif)
+![final2](https://raw.githubusercontent.com/kadw108/Image-Converter/main/final_example2.gif)
+
+---
+
 ### If You Want To Clone and Run Directly (Without Colab):
 
 Run converter.py. All relevant information is there.
