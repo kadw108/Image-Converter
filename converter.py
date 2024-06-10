@@ -319,7 +319,13 @@ def callback_on_one(callback, filename, input_num, output_num, *args, **kwargs):
     output_name will be filename, but beginning with output_num instead of input_num.
     """
 
-    if not os.path.basename(filename).startswith(str(input_num)):
+    search1 = re.search('[0-9]+', os.path.basename(filename))
+    if search1 == None:
+        return
+    first_number = search1.group()
+
+    match = first_number == str(input_num) and os.path.basename(filename).startswith(str(input        _num))
+    if not match:
         return
 
     output_name = get_output_filename(filename, output_num)
