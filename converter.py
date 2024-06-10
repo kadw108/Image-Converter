@@ -1,8 +1,10 @@
 import os
+import subprocess
 
 import shlex
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageEnhance
+
 from dithering import ordered_dither
 import numpy as np
 import cv2
@@ -14,44 +16,67 @@ glitcher = ImageGlitcher()
 
 import re
 
+import shutil
+
 current_path = os.path.abspath(os.getcwd())
 input_path = current_path
 
 """ IMAGE OR GIF ALTERING FUNCTIONS """
 
-def posterize(filename, output_name):
+def posterize(filename, output_name, keep_transparency = True, bits = 2):
     """
     Posterize input png.
+
+    bits = The number of bits to keep for each channel (1-8) (less = more posterized)
     """
 
-    inp = Image.open(filename)
-    inp = ImageOps.posterize(inp, 3)
+    original_img = Image.open(filename).convert("RGBA")
+
+    inp = Image.open(filename).convert("RGB")
+    inp = ImageOps.posterize(inp, bits)
     inp.save(output_name)
 
-def dither(filename, output_name, keep_transparency = True):
-    """
-    Dither input png.
-
-    keep_transparency -- whether to preserve alpha in input png
-    """
-
-    inp = cv2.imread(filename)
-    inp = ordered_dither(inp, "Bayer2x2")
-    cv2.imwrite(output_name, inp)
-
     if keep_transparency:
-        base_img = Image.open(filename).convert("RGBA")
         overlay_img = Image.open(output_name).convert("RGBA")
-        alpha = base_img.split()[-1]
-        mask_image = Image.new("RGBA", base_img.size, (0, 0, 0, 255))
+        alpha = original_img.split()[-1]
+        mask_image = Image.new("RGBA", original_img.size, (0, 0, 0, 255))
         mask_image.paste(alpha, mask=alpha)
         mask_image = mask_image.convert('L')
 
         overlay_img.putalpha(mask_image)
         overlay_img.save(output_name)
 
-        # real_output = Image.composite(base_img, overlay_img, mask_image)
-        # real_output.save(output_name)
+def dither(filename, output_name, keep_transparency = True, strength = 255):
+    """
+    Dither input png.
+
+    keep_transparency -- whether to preserve alpha in input png
+    strength -- strength of dither, i.e. how opaque the dithered version of the image will be over the original image
+    """
+
+    original_img = Image.open(filename).convert("RGBA")
+
+    inp = cv2.imread(filename)
+    inp = ordered_dither(inp, "Bayer2x2")
+    cv2.imwrite(output_name, inp)
+  
+    if strength != 255:
+        overlay_img = Image.open(output_name).convert("RGBA")
+
+        base_img = original_img.copy().convert("RGB")
+        overlay_img.putalpha(strength)
+        base_img.paste(overlay_img, mask=overlay_img)
+        base_img.save(output_name)
+
+    if keep_transparency:
+        overlay_img = Image.open(output_name).convert("RGBA")
+        alpha = original_img.split()[-1]
+        mask_image = Image.new("RGBA", original_img.size, (0, 0, 0, 255))
+        mask_image.paste(alpha, mask=alpha)
+        mask_image = mask_image.convert('L')
+
+        overlay_img.putalpha(mask_image)
+        overlay_img.save(output_name)
 
 def resize(filename, output_name, min_height = 804, max_height = 850):
     """
@@ -71,7 +96,7 @@ def resize(filename, output_name, min_height = 804, max_height = 850):
 # pixelate
 def pypxl(filename, output_name):
     """
-    Apply pixelate effect to input png.
+    Apply pixelate effect to input png, using pypxl library. Takes a bit longer than most of the functions here.
     """
     input_path2 = os.path.join(current_path, "pypxl")
     os.chdir(input_path2)
@@ -83,24 +108,27 @@ def pypxl(filename, output_name):
 
 def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
     """
+    from https://stackoverflow.com/a/71584672
+
     Applies gradient map/colormap to input png.
 
     colormap_name -- path to colormap, 1d horizontal pixel strip with lighter colors to the right
     gradient_alpha -- strength of colormap; number from [0, 255] with higher = stronger colormap
     """
 
-    # from https://stackoverflow.com/a/71584672
     im = Image.open(filename).convert('RGB')
     na = np.array(im)
     grey = np.mean(na, axis=2).astype(np.uint8)
 
     # Load colourmap
     cmap = Image.open(colormap_name).convert('RGB')
+    # need to resize to 256 x 1 pixels
+    # fun fact the below line did not exist in the original stackoverflow answer so I spent an hour trying to figure out why the colormaps weren't working properly
+    cmap = cmap.resize((256, 1))
 
     # Make output image, same height and width as grey image, but 3-channel RGB
-    result = np.zeros((*grey.shape,3), dtype=np.uint8)
+    result = np.zeros((*grey.shape, 3), dtype=np.uint8)
 
-    # Take entries from RGB colourmap according to greyscale values in image
     np.take(cmap.getdata(), grey, axis=0, out=result)
 
     # overlay_img has map applied in full
@@ -112,12 +140,44 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
     base_img.paste(overlay_img, mask=overlay_img)
     base_img.save(output_name)
 
-def glitch(filename, output_name):
+def pillow_adjust_image(filename, output_name, new_saturation = 1.0, new_contrast = 1.0, new_brightness = 1.0, new_sharpness = 1.0):
+    """
+    https://pillow.readthedocs.io/en/stable/reference/ImageEnhance.html
+
+    New saturation/contrast/brightness/sharpness starts at 0, 1.0 is normal, 2.0 is double, etc
+    """
+    inp = Image.open(filename).convert("RGBA")
+    inp = ImageEnhance.Color(inp).enhance(new_saturation)
+    inp = ImageEnhance.Contrast(inp).enhance(new_contrast)
+    inp = ImageEnhance.Brightness(inp).enhance(new_brightness)
+    inp = ImageEnhance.Sharpness(inp).enhance(new_sharpness)
+    inp.save(output_name)
+
+def convert_gif(filename, output_name, number_frames = 8, framerate = 8): 
+    """ 
+    Turns input png into output gif.
+    The gif will appear identical to the input png (it will not be animated).
+
+    Mainly useful for the painting function, which only converts pngs to pngs and gifs to gifs.
+
+    number_frames = number of frames in resulting gif.
+    framerate = framerate of resulting gif.
+    """
+
+    shutil.rmtree("temp", ignore_errors = True) 
+    os.makedirs("temp")
+    for i in range(number_frames):
+        shutil.copyfile(filename, os.path.join("temp", str(i) + ".png"))
+
+    command = "ffmpeg -y -framerate " + str(framerate) + " -i temp/%d.png " + output_name + ".gif"
+    subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell = True)
+
+def glitch(filename, output_name, glitch_amount = 0.7):
     """
     Turns input png into glitchy gif.
     """
     # glitch_image(self, src_img, glitch_amount, glitch_change=0.0, cycle=False, color_offset=False, scan_lines=False, gif=False, frames=23, step=1)
-    glitch_img = glitcher.glitch_image(filename, 0.7, color_offset = True, gif=True)
+    glitch_img = glitcher.glitch_image(filename, glitch_amount, color_offset = True, gif=True)
     # glitch_img = glitcher.glitch_image(i, 0.5, scan_lines = True, gif=True)
 
     DURATION = 200      # Set this to however many centiseconds each frame should be visible for
@@ -129,6 +189,35 @@ def glitch(filename, output_name):
                        save_all=True,
                        duration=DURATION,
                        loop=LOOP)
+
+def painting(filename, output_name, brush_width = 1, gradient = "scharr"):
+    """
+    From https://github.com/cyshih73/Faster-OilPainting with slight modifications
+
+    Turns input gif into painting-like gif.
+    (Or input png into painting-like png, maybe.)
+
+    main.py [-h] [--brush_width BRUSH_WIDTH] --path PATH
+        [--palette PALETTE] [--gradient GRADIENT]
+    optional arguments:
+      -h, --help            show this help message and exit
+      --brush_width BRUSH_WIDTH
+                            Scale of the brush strokes
+      --path PATH           Target image path, gif or still image
+      --output_path PATH    Output path (added by KADW)
+      --palette PALETTE     Palette colours. 0 = Actual color
+      --gradient GRADIENT   Edge detection type. (sobel, scharr, prewitt, roberts)
+
+    NOT COMPATIBLE WITH IMAGE TRANSPARENCY.
+
+    """
+
+    input_path2 = os.path.join(current_path, "Faster-OilPainting")
+    os.chdir(input_path2)
+
+    command = "python3 main.py --brush_width " + str(brush_width) + " --path " + os.path.join(input_path, filename) + " --output_path " + os.path.join(input_path, output_name) + " --palette 0 --gradient " + gradient
+    subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell = True)
+    os.chdir(current_path)
 
 def gif_downsize(filename, output_name, percent):
     """
@@ -229,8 +318,16 @@ def callback_on_one(callback, filename, input_num, output_num, *args, **kwargs):
     Executes callback(filename, output_name, kwargs) only if filename begins with input_num.
     output_name will be filename, but beginning with output_num instead of input_num.
     """
-    if not os.path.basename(filename).startswith(str(input_num)):
+
+    search1 = re.search('[0-9]+', os.path.basename(filename))
+    if search1 == None:
         return
+    first_number = search1.group()
+
+    match = first_number == str(input_num) and os.path.basename(filename).startswith(str(input        _num))
+    if not match:
+        return
+
     output_name = get_output_filename(filename, output_num)
     callback(filename, output_name, *args, **kwargs)
 
@@ -257,14 +354,17 @@ if __name__ == "__main__":
     # You can comment in/out specific parts of the pipeline if you want to swap out certain operations for other ones, or if you like the product of a certain step but not what happens after that.
     # Furthermore, since different input/output numbers are used for each step, you can check the results of each operation.
 
-    callback_all(resize, 0, 2, max_height = 450)
+    callback_all(resize, 0, 1, max_height = 300)
+    callback_all(pillow_adjust_image, 1, 2, new_contrast = 1.0, new_brightness = 1.1, new_saturation = 1.5)
     callback_all(apply_colormap, 2, 3, colormap_name = "colormap_greenhouse.png", gradient_alpha = 150)
-    callback_all(glitch, 3, 4)
-    callback_all(gif_change_speed, 4, 5, fps = 6)
-    callback_all(gif_downsize, 5, 6, percent = 80)
-    callback_all(gif_reduce_frames, 5, 7)
-    callback_all(gif_change_speed, 7, 8, fps = 6)
-    callback_all(gif_optimize, 8, 9, lossy=200, color_num = 64)
+    callback_all(glitch, 3, 6, glitch_amount = 2)
+    callback_all(gif_reduce_frames, 6, 7, skip_frames = 6)
+    callback_all(gif_change_speed, 7, 8, fps = 2)
+    callback_all(gif_optimize, 8, 9, lossy=200, color_num = 16)
+
+    callback_all(convert_gif, 2, 998, number_frames = 6, framerate = 3)
+    callback_all(painting, 998, 999) 
+    callback_all(gif_optimize, 999, 1000, lossy=200, color_num = 16)
 
     """
     # Example of using the image functions on 1 image.
