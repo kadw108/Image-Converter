@@ -13,3 +13,4 @@ pyxelate.py
 Faster-OilPainting/temp/
 *__pycache__/
 out.gif
+seeds/
