@@ -324,7 +324,7 @@ def callback_on_one(callback, filename, input_num, output_num, *args, **kwargs):
         return
     first_number = search1.group()
 
-    match = first_number == str(input_num) and os.path.basename(filename).startswith(str(input        _num))
+    match = first_number == str(input_num) and os.path.basename(filename).startswith(str(input_num))
     if not match:
         return
 
