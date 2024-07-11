@@ -123,7 +123,7 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
     # Load colourmap
     cmap = Image.open(colormap_name).convert('RGB')
     # need to resize to 256 x 1 pixels
-    # fun fact the below line did not exist in the original stackoverflow answer so I spent an hour trying to figure out why the colormaps weren't working properly
+    # the below line did not exist in the original stackoverflow answer so I spent an hour trying to figure out why the colormaps weren't working properly
     cmap = cmap.resize((256, 1))
 
     # Make output image, same height and width as grey image, but 3-channel RGB
@@ -135,6 +135,7 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
     overlay_img = Image.fromarray(result).convert("RGB")
     overlay_img.save(output_name)
 
+    # keep transparency
     base_img = Image.open(filename).convert("RGB")
     overlay_img.putalpha(gradient_alpha)
     base_img.paste(overlay_img, mask=overlay_img)
