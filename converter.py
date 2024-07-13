@@ -114,6 +114,7 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha = 255, k
 
     colormap_name -- path to colormap, 1d horizontal pixel strip with lighter colors to the right
     gradient_alpha -- strength of colormap; number from [0, 255] with higher = stronger colormap
+    keep_transparency -- whether to preserve alpha in input png
     """
 
     original_img = Image.open(filename).convert("RGBA")
