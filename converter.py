@@ -106,7 +106,7 @@ def pypxl(filename, output_name):
 
     os.chdir(current_path)
 
-def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
+def apply_colormap(filename, output_name, colormap_name, gradient_alpha = 255, keep_transparency = True):
     """
     from https://stackoverflow.com/a/71584672
 
@@ -115,6 +115,8 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
     colormap_name -- path to colormap, 1d horizontal pixel strip with lighter colors to the right
     gradient_alpha -- strength of colormap; number from [0, 255] with higher = stronger colormap
     """
+
+    original_img = Image.open(filename).convert("RGBA")
 
     im = Image.open(filename).convert('RGB')
     na = np.array(im)
@@ -134,12 +136,20 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha):
     # overlay_img has map applied in full
     overlay_img = Image.fromarray(result).convert("RGB")
     overlay_img.save(output_name)
-
-    # keep transparency
     base_img = Image.open(filename).convert("RGB")
     overlay_img.putalpha(gradient_alpha)
     base_img.paste(overlay_img, mask=overlay_img)
     base_img.save(output_name)
+
+    if keep_transparency:
+        overlay_img = Image.open(output_name).convert("RGBA")
+        alpha = original_img.split()[-1]
+        mask_image = Image.new("RGBA", original_img.size, (0, 0, 0, 255))
+        mask_image.paste(alpha, mask=alpha)
+        mask_image = mask_image.convert('L')
+
+        overlay_img.putalpha(mask_image)
+        overlay_img.save(output_name)
 
 def pillow_adjust_image(filename, output_name, new_saturation = 1.0, new_contrast = 1.0, new_brightness = 1.0, new_sharpness = 1.0):
     """
