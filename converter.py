@@ -1,22 +1,19 @@
 import os
 import subprocess
-
 import shlex
 
 from PIL import Image, ImageOps, ImageEnhance
-
 from dithering import ordered_dither
 import numpy as np
 import cv2
-
 import math
 
 from glitch_this import ImageGlitcher
 glitcher = ImageGlitcher()
 
 import re
-
 import shutil
+from natsort import natsorted
 
 current_path = os.path.abspath(os.getcwd())
 input_path = current_path
@@ -352,7 +349,7 @@ def callback_all(callback, input_num, output_num, *args, **kwargs):
     Since it lets you operate on image files in bulk.
     """
     print("\n--- Callback:", callback.__name__, "| Input num:", input_num, "| Output num:", output_num, "---")
-    gather_files = [x for x in sorted(os.listdir(input_path)) if (x.endswith(".png") or x.endswith(".gif"))]
+    gather_files = [x for x in natsorted(os.listdir(input_path)) if (x.endswith(".png") or x.endswith(".gif"))]
     for filename in gather_files:
         full_filename = os.path.join(input_path, filename)
         callback_on_one(callback, full_filename, input_num, output_num, *args, **kwargs)
