@@ -90,6 +90,38 @@ def resize(filename, output_name, min_height = 804, max_height = 850):
 
     inp.save(output_name)
 
+def crop(filename, output_name, max_width = 1920, max_height = 1080):
+    """
+    Crops input png if it has width/height greater
+    than max_width/max_height.
+
+    Crops sides of image (anchor in center).
+    """
+    inp = Image.open(filename)
+
+    width, height = inp.size
+    left = 0
+    top = 0
+    right = width
+    bottom = height
+
+    if (width > max_width):
+        difference = width - max_width
+        left_diff = math.ceil(difference/2)
+        right_diff = math.floor(difference/2)
+        left = left_diff
+        right = width - right_diff
+
+    if (height > max_height):
+        difference = height - max_height
+        top_diff = math.ceil(difference/2)
+        bottom_diff = math.floor(difference/2)
+        top = top_diff
+        bottom = height - bottom_diff
+
+    inp = inp.crop((left, top, right, bottom))
+    inp.save(output_name)
+
 # pixelate
 def pypxl(filename, output_name):
     """
