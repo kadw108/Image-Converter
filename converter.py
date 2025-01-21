@@ -235,7 +235,7 @@ def video_to_image_sequence(filename, output_name, fps = 10):
     if not filename.endswith((".qt", ".mp4", ".mov")):
         return
 
-    command = "ffmpeg -i " + filename + " -vf \"fps=" + str(fps) + "\" " + output_name + "_%d.png"
+    command = "ffmpeg -i " + filename + " -vf \"fps=" + str(fps) + "\" " + output_name + "_FRAME%d.png"
     subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell = True)
 
 """ 3. FUNCTIONS THAT TURN FILES INTO GIFS """
@@ -258,16 +258,16 @@ def convert_gif(filename, output_name, number_frames = 8, framerate = 8):
 
     # from https://stackoverflow.com/a/14471236
     filename_no_extension = pathlib.Path(filename).stem
-    m = re.search(r'\d+$', filename_no_extension)
+    m = re.search(r'_FRAME\d+$', filename_no_extension)
     # if the filename ends in digits, m will be a Match object; otherwise it will be None
     
     # if input is png sequence
     if m is not None:
-        common_prefix = filename_no_extension[:-len(m.group())]
+        common_prefix = filename_no_extension[: - (len(m.group()) - len("_FRAME"))]
         frame_min = float("inf")
         frame_max = float("-inf")
 
-        real_output_name = re.sub(r'\d+$', '', pathlib.Path(output_name).stem) + ".gif"
+        real_output_name = re.sub(r'_FRAME\d+$', '', pathlib.Path(output_name).stem) + ".gif"
         output_gif_exists = os.path.exists(real_output_name)
         if output_gif_exists:
             output_gif_creation = os.path.getmtime(real_output_name)
@@ -288,7 +288,7 @@ def convert_gif(filename, output_name, number_frames = 8, framerate = 8):
     
         if not output_gif_exists or latest_sequence_creation > output_gif_creation:
             command = 'convert $(printf -- "-dispose Background "; for ((a=' + str(frame_min) + '; a<' + str(frame_max) + '; a++)); do printf -- "-delay ' + str(framerate) + ' ' + common_prefix + '%d.png -dispose Background " $a; done;) ' + real_output_name
-           
+          
             # From https://stackoverflow.com/a/29269316 
             # Normal subprocess.call or subprocess.run doesn't work here, possibly because of the nested commands
             process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
