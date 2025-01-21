@@ -228,6 +228,9 @@ def convert_gif(filename, output_name, number_frames = 8, framerate = 8):
     framerate = framerate of resulting gif.
     """
 
+    if not filename.endswith((".png", ".jpg")):
+        return
+
     # from https://stackoverflow.com/a/14471236
     filename_no_extension = pathlib.Path(filename).stem
     m = re.search(r'\d+$', filename_no_extension)
