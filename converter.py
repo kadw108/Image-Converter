@@ -30,6 +30,9 @@ def posterize(filename, output_name, keep_transparency = True, bits = 2):
     bits = The number of bits to keep for each channel (1-8) (less = more posterized)
     """
 
+    if not filename.endswith((".png", ".jpg")):
+        return
+
     original_img = Image.open(filename).convert("RGBA")
 
     inp = Image.open(filename).convert("RGB")
@@ -53,6 +56,9 @@ def dither(filename, output_name, keep_transparency = True, strength = 255):
     keep_transparency -- whether to preserve alpha in input png
     strength -- strength of dither, i.e. how opaque the dithered version of the image will be over the original image
     """
+
+    if not filename.endswith((".png", ".jpg")):
+        return
 
     original_img = Image.open(filename).convert("RGBA")
 
@@ -82,6 +88,10 @@ def resize(filename, output_name, min_height = 804, max_height = 850):
     """
     Resize input png.
     """
+    
+    if not filename.endswith((".png", ".jpg")):
+        return 
+    
     inp = Image.open(filename)
     if (inp.height < min_height):
         factor = min_height/inp.height
@@ -100,6 +110,10 @@ def crop(filename, output_name, max_width = 1920, max_height = 1080):
 
     Crops sides of image (anchor in center).
     """
+        
+    if not filename.endswith((".png", ".jpg")):
+        return 
+    
     inp = Image.open(filename)
 
     width, height = inp.size
@@ -130,6 +144,10 @@ def pypxl(filename, output_name):
     """
     Apply pixelate effect to input png, using pypxl library. Takes a bit longer than most of the functions here.
     """
+    
+    if not filename.endswith((".png", ".jpg")):
+        return 
+    
     input_path2 = os.path.join(current_path, "pypxl")
     os.chdir(input_path2)
 
@@ -148,6 +166,9 @@ def apply_colormap(filename, output_name, colormap_name, gradient_alpha = 255, k
     gradient_alpha -- strength of colormap; number from [0, 255] with higher = stronger colormap
     keep_transparency -- whether to preserve alpha in input png
     """
+
+    if not filename.endswith((".png", ".jpg")):
+        return
 
     original_img = Image.open(filename).convert("RGBA")
 
@@ -190,6 +211,10 @@ def pillow_adjust_image(filename, output_name, new_saturation = 1.0, new_contras
 
     New saturation/contrast/brightness/sharpness starts at 0, 1.0 is normal, 2.0 is double, etc
     """
+    
+    if not filename.endswith((".png", ".jpg")):
+        return 
+    
     inp = Image.open(filename).convert("RGBA")
     inp = ImageEnhance.Color(inp).enhance(new_saturation)
     inp = ImageEnhance.Contrast(inp).enhance(new_contrast)
@@ -283,6 +308,10 @@ def glitch(filename, output_name, glitch_amount = 0.7):
     """
     Turns input png into glitchy gif.
     """
+    
+    if not filename.endswith((".png", ".jpg")):
+        return 
+    
     # glitch_image(self, src_img, glitch_amount, glitch_change=0.0, cycle=False, color_offset=False, scan_lines=False, gif=False, frames=23, step=1)
     glitch_img = glitcher.glitch_image(filename, glitch_amount, color_offset = True, gif=True)
     # glitch_img = glitcher.glitch_image(i, 0.5, scan_lines = True, gif=True)
@@ -321,6 +350,9 @@ def painting(filename, output_name, brush_width = 1, gradient = "scharr"):
 
     """
 
+    if not filename.endswith((".png", ".jpg", ".gif")):
+        return 
+
     input_path2 = os.path.join(current_path, "Faster-OilPainting")
     os.chdir(input_path2)
 
@@ -336,6 +368,9 @@ def gif_downsize(filename, output_name, percent):
     percent -- [0-100], percentage of original size to keep.
     """
 
+    if not filename.endswith((".gif")):
+        return 
+
     command = "convert -resize " + str(percent) + "% " + filename + " " + output_name
     os.system(command)
 
@@ -347,6 +382,9 @@ def gif_optimize(filename, output_name, lossy = 30, color_num = None):
     color_num -- colorspace/number of colors in resulting gif, suggested values from 16 to 256. Optional. Number of colors will not be reduced if not included.
     lossy -- level of compression, suggested values from 30 to 200, with higher = more compression.
     """
+
+    if not filename.endswith((".gif")):
+        return 
 
     color_num_arg = ""
     if isinstance(color_num, int):
@@ -360,6 +398,10 @@ def gif_change_speed(filename, output_name, fps = 12):
     Change speed of input gif to fps.
     Requires ImageMagick to work on command line as convert.
     """
+    
+    if not filename.endswith((".gif")):
+        return 
+    
     argument = str(int(100/fps)) # Default fps of 12 makes this 8
 
     command = "convert -delay " + argument + " " + os.path.join(input_path, filename) + " " + os.path.join(input_path, output_name)
@@ -372,6 +414,9 @@ def gif_reduce_frames(filename, output_name, skip_frames=2):
 
     skip_frames -- skip_frames=2 keeps frames 0, 2, 4... skip_frames=4 keeps frames 0, 4, 8... and so on.
     """
+
+    if not filename.endswith((".gif")):
+        return 
 
     im = Image.open(filename)
     num_frames = str(im.n_frames - 1) # frames are 0-indexed in gifsicle
